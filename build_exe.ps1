@@ -29,5 +29,5 @@ if (Test-Path (Join-Path $OutDir "AOJ MR Studio.exe")) {
         Write-Host "  Bundled adb: $OutDir\adb\adb.exe"
     }
 } else {
-    Write-Error "Build failed — exe not found in dist\AOJ MR Studio"
+    Write-Error "Build failed - exe not found in dist\AOJ MR Studio"
 }
