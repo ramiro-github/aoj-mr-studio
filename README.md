@@ -4,6 +4,12 @@ Desktop tool for **Age of Joy Mixed Reality** — browse Quest MR folders and (f
 
 Not an official Curif tool.
 
+## Download (Windows)
+
+Pre-built zip: **[Latest release](https://github.com/ramiro-github/aoj-mr-studio/releases/latest)**
+
+Extract the folder and run `AOJ MR Studio.exe`. No Python install required.
+
 ## Features (current)
 
 - Browse Quest folders under `/sdcard/Android/data/com.curif.AgeOfJoy/MR/` via **ADB**
@@ -48,6 +54,17 @@ Bundles **adb.exe** + DLLs next to the app (like SideQuest):
 Output: `dist\AOJ MR Studio\AOJ MR Studio.exe` and `dist\AOJ MR Studio\adb\adb.exe`.
 
 Ship the **entire** `dist\AOJ MR Studio\` folder to users.
+
+### Automated release (maintainers)
+
+Push a version tag to build on GitHub Actions and attach the zip to a Release:
+
+```powershell
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+Workflow: [.github/workflows/release.yml](.github/workflows/release.yml) (Windows, tests, PyInstaller, bundled adb).
 
 ## Quest paths
 

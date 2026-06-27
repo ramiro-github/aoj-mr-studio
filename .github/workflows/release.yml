@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Download Android platform-tools (bundled adb)
+        shell: pwsh
+        run: |
+          $url = "https://dl.google.com/android/repository/platform-tools-latest-windows.zip"
+          Invoke-WebRequest -Uri $url -OutFile platform-tools.zip
+          Expand-Archive -Path platform-tools.zip -DestinationPath . -Force
+          ./scripts/copy-adb.ps1 -PlatformToolsDir "./platform-tools"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev,build]"
+
+      - name: Run tests
+        run: pytest
+
+      - name: Build executable
+        run: pyinstaller --noconfirm aoj-mr-studio.spec
+
+      - name: Verify build output
+        shell: pwsh
+        run: |
+          $exe = "dist/AOJ MR Studio/AOJ MR Studio.exe"
+          $adb = "dist/AOJ MR Studio/adb/adb.exe"
+          if (-not (Test-Path $exe)) { throw "Missing $exe" }
+          if (-not (Test-Path $adb)) { throw "Missing bundled $adb" }
+
+      - name: Create zip
+        shell: pwsh
+        run: |
+          $zip = "AOJ-MR-Studio-${{ github.ref_name }}-win64.zip"
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path "dist/AOJ MR Studio" -DestinationPath $zip
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AOJ-MR-Studio-${{ github.ref_name }}-win64.zip
+          generate_release_notes: true
+          body: |
+            Windows build (64-bit). Extract the zip and run `AOJ MR Studio.exe`.
+            Ship the whole folder — includes bundled `adb/` for Quest sync.
+
+            Bundled `adb.exe` is subject to the [Android SDK terms](https://developer.android.com/studio/terms).
