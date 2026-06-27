@@ -1,0 +1,22 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+.eggs/
+# PyInstaller spec is tracked; build output is not
+.idea/
+.vscode/
+*.log
+.DS_Store
+Thumbs.db
+
+# Bundled adb binaries (copy via scripts/copy-adb.ps1)
+vendor/adb/*.exe
+vendor/adb/*.dll
