@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aoj-mr-studio"
-version = "0.1.2"
+version = "0.1.3"
 description = "Editor for Age of Joy MR custom object packages (object.yaml) with Quest ADB sync"
 readme = "README.md"
 requires-python = ">=3.11"

@@ -11,15 +11,23 @@ datas = []
 manual_data = project_root / "aoj_mr_studio" / "data"
 if manual_data.is_dir():
     datas.append((str(manual_data), "aoj_mr_studio/data"))
+
+# adb must be listed in binaries, not datas — PyInstaller 6 reclassifies .exe
+# from datas and drops them from the expected adb/ folder in onedir builds.
+binaries = []
+_adb_bundle_files = ("adb.exe", "AdbWinApi.dll", "AdbWinUsbApi.dll")
 if (adb_dir / "adb.exe").is_file():
-    datas.append((str(adb_dir), "adb"))
+    for name in _adb_bundle_files:
+        path = adb_dir / name
+        if path.is_file():
+            binaries.append((str(path), "adb"))
 else:
     print("WARNING: vendor/adb/adb.exe missing — run scripts/copy-adb.ps1 before release builds")
 
 a = Analysis(
     ["aoj_mr_studio/__main__.py"],
     pathex=[str(project_root)],
-    binaries=[],
+    binaries=binaries,
     datas=datas,
     hiddenimports=[],
     hookspath=[],
