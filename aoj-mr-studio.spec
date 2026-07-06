@@ -58,6 +58,8 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    # Keep adb/ next to the .exe (PyInstaller 6 defaults to _internal/).
+    contents_directory=".",
 )
 
 coll = COLLECT(

@@ -17,10 +17,12 @@ def bundled_adb_directories() -> list[Path]:
     directories: list[Path] = []
 
     if getattr(sys, "frozen", False):
+        app_dir = Path(sys.executable).resolve().parent
         meipass = getattr(sys, "_MEIPASS", None)
         if meipass:
             directories.append(Path(meipass) / "adb")
-        directories.append(Path(sys.executable).resolve().parent / "adb")
+        directories.append(app_dir / "adb")
+        directories.append(app_dir / "_internal" / "adb")
 
     directories.append(project_root() / "vendor" / "adb")
     return directories
