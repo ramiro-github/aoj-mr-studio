@@ -1,23 +1,44 @@
 # AOJ MR Studio
 
-Desktop tool for **Age of Joy Mixed Reality** — browse Quest MR folders and (future) edit custom object packages (`object.yaml`).
+Desktop tool for **Age of Joy Mixed Reality** — browse Quest MR folders and edit custom object packages (`object.yaml`).
 
 Not an official Curif tool.
 
-## Download (Windows)
+---
 
-Pre-built zip: **[Latest release](https://github.com/ramiro-github/aoj-mr-studio/releases/latest)**
+## For users (download — do not clone)
 
-Extract the folder and run `AOJ MR Studio.exe`. No Python install required.
+**Do not clone this repository.** End users only need the pre-built Windows zip from **Releases**.
+
+1. Open **[Latest release](https://github.com/ramiro-github/aoj-mr-studio/releases/latest)**
+2. Download **`AOJ-MR-Studio-vX.Y.Z-win64.zip`**
+3. Extract the folder **`AOJ MR Studio`**
+4. Run **`AOJ MR Studio.exe`**
+
+No Python install required. Keep the **whole extracted folder** (includes bundled `adb/`).
+
+### Requirements
+
+- Windows PC
+- Meta Quest: developer mode, USB debugging, Age of Joy run at least once
+- USB cable to the PC
+
+---
 
 ## Features (current)
 
 - **Startup** — connects to Meta Quest on launch (loading screen), then opens **Home** with the bundled MR user guide (**pt-BR** and **English**), styled text and clickable table of contents
 - Browse Quest folders under `/sdcard/Android/data/com.curif.AgeOfJoy/MR/` via **ADB**
 - Edit custom object packages (`object.yaml`, Placement, Components) and **Save to Meta Quest**
-- **Bundled adb** support (SideQuest-style) — no separate platform-tools install for end users
+- **Bundled adb** — no separate platform-tools install for end users
 
-## Requirements (development)
+---
+
+## For developers
+
+Clone this repo only if you work on the app. Users should use **Releases**, not `git clone`.
+
+### Requirements
 
 - Python **3.11+**
 - Meta Quest: developer mode, USB debugging, Age of Joy run once
@@ -27,17 +48,17 @@ For **running from source**, either:
 1. Run `scripts/copy-adb.ps1` (bundled adb in `vendor/adb/`), or  
 2. Install [platform-tools](https://developer.android.com/tools/releases/platform-tools) and add `adb` to PATH
 
-## Setup
+### Setup
 
 ```powershell
 cd "C:\Users\ramir\OneDrive\Documents\AOJ MR Studio"
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -e ".[dev]"
+pip install -e ".[dev,build]"
 .\scripts\copy-adb.ps1
 ```
 
-## Run
+### Run from source
 
 ```powershell
 python -m aoj_mr_studio
@@ -45,9 +66,7 @@ python -m aoj_mr_studio
 
 Or `run.bat`.
 
-## Build executable (Windows)
-
-Bundles **adb.exe** + DLLs next to the app (like SideQuest):
+### Build executable locally (Windows)
 
 ```powershell
 .\build_exe.ps1
@@ -55,18 +74,27 @@ Bundles **adb.exe** + DLLs next to the app (like SideQuest):
 
 Output: `dist\AOJ MR Studio\AOJ MR Studio.exe` and `dist\AOJ MR Studio\adb\adb.exe`.
 
-Ship the **entire** `dist\AOJ MR Studio\` folder to users.
+Ship the **entire** `dist\AOJ MR Studio\` folder to users (or publish via Releases below).
 
-### Automated release (maintainers)
+### Publish a release (maintainers)
 
-Push a version tag to build on GitHub Actions and attach the zip to a Release:
+`./scripts/deploy.sh` (Git Bash):
 
-```powershell
-git tag v0.1.0
-git push origin v0.1.0
+1. Runs tests
+2. Bumps `pyproject.toml` version
+3. Commits and pushes to `main`
+4. Creates tag `vX.Y.Z` and pushes it
+
+GitHub Actions then builds the user-ready zip and publishes it on **Releases** (source code stays on `main`; the `.exe` is **not** committed to git).
+
+```bash
+chmod +x scripts/deploy.sh
+./scripts/deploy.sh
 ```
 
-Workflow: [.github/workflows/release.yml](.github/workflows/release.yml) (Windows, tests, PyInstaller, bundled adb).
+Workflow: [.github/workflows/release.yml](.github/workflows/release.yml) — Windows, tests, PyInstaller, bundled adb, zip upload.
+
+---
 
 ## Quest paths
 

@@ -57,7 +57,14 @@ jobs:
           files: AOJ-MR-Studio-${{ github.ref_name }}-win64.zip
           generate_release_notes: true
           body: |
-            Windows build (64-bit). Extract the zip and run `AOJ MR Studio.exe`.
-            Ship the whole folder — includes bundled `adb/` for Quest sync.
+            ## Download (users — do not clone)
+
+            Download **`AOJ-MR-Studio-${{ github.ref_name }}-win64.zip`** below.
+
+            1. Extract the zip (folder **`AOJ MR Studio`**)
+            2. Run **`AOJ MR Studio.exe`**
+            3. Keep the whole folder — includes bundled **`adb/`**
+
+            **Do not** `git clone` this repository to use the app. The repo is source code for developers only. No Python install required.
 
             Bundled `adb.exe` is subject to the [Android SDK terms](https://developer.android.com/studio/terms).

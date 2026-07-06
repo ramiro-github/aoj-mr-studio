@@ -132,10 +132,26 @@ git push "$REMOTE" "$TAG"
 
 echo ""
 echo "=== Deploy started ==="
-echo "GitHub Actions will build: AOJ-MR-Studio-${TAG}-win64.zip"
+echo "GitHub Actions will build the user zip: AOJ-MR-Studio-${TAG}-win64.zip"
 if [[ -n "$GITHUB_SLUG" ]]; then
   echo "Actions:  https://github.com/${GITHUB_SLUG}/actions"
-  echo "Releases: https://github.com/${GITHUB_SLUG}/releases"
+  echo "Releases: https://github.com/${GITHUB_SLUG}/releases/tag/${TAG}"
+  if command -v gh >/dev/null 2>&1; then
+    echo ""
+    echo "=== Waiting for GitHub Actions (build + upload) ==="
+    if gh run watch --repo "$GITHUB_SLUG" --exit-status; then
+      echo ""
+      echo "=== Release published ==="
+      gh release view "$TAG" --repo "$GITHUB_SLUG" --web 2>/dev/null || true
+      gh release view "$TAG" --repo "$GITHUB_SLUG" 2>/dev/null || true
+    else
+      echo "Warning: workflow failed or timed out. Check Actions in the browser."
+      exit 1
+    fi
+  else
+    echo ""
+    echo "Install GitHub CLI (gh) to wait for the build here, or open Actions in the browser."
+  fi
 else
   echo "Check your GitHub repository Actions and Releases pages."
 fi
