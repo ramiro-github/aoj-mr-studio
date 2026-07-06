@@ -8,6 +8,9 @@ project_root = Path(SPECPATH)
 adb_dir = project_root / "vendor" / "adb"
 
 datas = []
+manual_data = project_root / "aoj_mr_studio" / "data"
+if manual_data.is_dir():
+    datas.append((str(manual_data), "aoj_mr_studio/data"))
 if (adb_dir / "adb.exe").is_file():
     datas.append((str(adb_dir), "adb"))
 else:

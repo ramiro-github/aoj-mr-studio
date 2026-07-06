@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, simpledialog, ttk
@@ -14,6 +15,13 @@ from aoj_mr_studio.adb_sync import (
 )
 from aoj_mr_studio.component_editor import ComponentsEditor
 from aoj_mr_studio.component_schema import apply_components_to_yaml_text, validate_component_rows
+from aoj_mr_studio.manual import (
+    MANUAL_LABELS,
+    ManualLocale,
+    locale_from_manual_link,
+    load_user_manual_text,
+)
+from aoj_mr_studio.manual_renderer import ManualViewer
 from aoj_mr_studio.placement_editor import PlacementEditor
 from aoj_mr_studio.placement_schema import apply_placement_to_yaml_text
 from aoj_mr_studio.config import (
@@ -50,33 +58,53 @@ class StudioApp(tk.Tk):
         self.container = ttk.Frame(self)
         self.container.pack(fill=tk.BOTH, expand=True)
 
-        self.start_frame = ttk.Frame(self.container)
+        self.loading_frame = ttk.Frame(self.container)
+        self.home_frame = ttk.Frame(self.container)
         self.workspace_frame = ttk.Frame(self.container)
         self.package_frame = ttk.Frame(self.container)
+
+        self._device_connected = False
+        self._device_status_message = ""
+        self._startup_connect_running = False
+        self._manual_locale: ManualLocale = "en"
 
         self.status_var = tk.StringVar(value="Ready")
         ttk.Label(self, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W, padding=(6, 2)).pack(
             fill=tk.X, side=tk.BOTTOM
         )
 
-        self._build_start_screen()
+        self._build_loading_screen()
+        self._build_home_screen()
         self._build_workspace_screen()
         self._build_package_screen()
-        self.show_start_screen()
+        self.show_loading_screen()
+        self.after(80, self._begin_startup_connect)
 
     def _hide_all_screens(self) -> None:
-        self.start_frame.pack_forget()
+        self.loading_frame.pack_forget()
+        self.home_frame.pack_forget()
         self.workspace_frame.pack_forget()
         self.package_frame.pack_forget()
 
     def set_status(self, message: str) -> None:
         self.status_var.set(message)
 
-    def show_start_screen(self) -> None:
+    def show_loading_screen(self) -> None:
         self._hide_all_screens()
-        self.start_frame.pack(fill=tk.BOTH, expand=True)
+        self.loading_frame.pack(fill=tk.BOTH, expand=True)
         self.title(APP_NAME)
-        self.set_status("Connect Quest and open Custom Objects")
+        self.set_status("Connecting to Meta Quest…")
+        if hasattr(self, "loading_progress"):
+            self.loading_progress.start(12)
+
+    def show_home_screen(self) -> None:
+        self._hide_all_screens()
+        if hasattr(self, "loading_progress"):
+            self.loading_progress.stop()
+        self.home_frame.pack(fill=tk.BOTH, expand=True)
+        self.title(f"{APP_NAME} — Home")
+        self._refresh_home_connection_ui()
+        self.set_status(self._device_status_message or "Home")
 
     def show_workspace_screen(self) -> None:
         self._hide_all_screens()
@@ -96,58 +124,175 @@ class StudioApp(tk.Tk):
         self.package_path_var.set(self.selected_package_path)
         self.load_package_editor()
 
-    def _build_start_screen(self) -> None:
-        outer = ttk.Frame(self.start_frame, padding=24)
+    def _build_loading_screen(self) -> None:
+        outer = ttk.Frame(self.loading_frame, padding=24)
         outer.pack(fill=tk.BOTH, expand=True)
 
         center = ttk.Frame(outer)
         center.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-        self.folder_icon = tk.Label(
+        ttk.Label(
             center,
-            text="\U0001F4C1",
-            font=("Segoe UI Emoji", 96),
-            cursor="hand2",
+            text="Connecting to Meta Quest…",
+            font=("", 16),
+        ).pack(pady=(0, 16))
+
+        self.loading_progress = ttk.Progressbar(
+            center,
+            mode="indeterminate",
+            length=280,
         )
-        self.folder_icon.pack()
-        self.folder_icon.bind("<Button-1>", lambda _event: self.open_quest_custom_objects())
+        self.loading_progress.pack()
 
         ttk.Label(
             center,
-            text="Open Custom Objects on Quest",
-            font=("", 14),
-        ).pack(pady=(16, 4))
-
-        ttk.Label(
-            center,
-            text="Age of Joy MR packages on the headset\n(object.yaml + .glb per folder)",
+            text="Verifique o cabo USB, o modo desenvolvedor e a depuração USB.",
             justify=tk.CENTER,
             foreground="#555555",
-        ).pack(pady=(0, 8))
+        ).pack(pady=(16, 0))
 
-        ttk.Label(
-            center,
-            text=QUEST_CUSTOM_OBJECTS,
-            font=("Consolas", 9),
-            foreground="#666666",
-        ).pack(pady=(0, 20))
+    def _build_home_screen(self) -> None:
+        outer = ttk.Frame(self.home_frame, padding=(12, 12, 12, 8))
+        outer.pack(fill=tk.BOTH, expand=True)
 
-        ttk.Button(center, text="Open on Quest", command=self.open_quest_custom_objects).pack()
+        header = ttk.Frame(outer)
+        header.pack(fill=tk.X)
+
+        ttk.Label(header, text=APP_NAME, font=("", 16, "bold")).pack(side=tk.LEFT)
+
+        actions = ttk.Frame(header)
+        actions.pack(side=tk.RIGHT)
+
+        self.home_reconnect_btn = ttk.Button(
+            actions,
+            text="Reconnect",
+            command=self._begin_startup_connect,
+        )
+        self.home_reconnect_btn.pack(side=tk.RIGHT, padx=(6, 0))
+
+        self.home_open_btn = ttk.Button(
+            actions,
+            text="Open Custom Objects",
+            command=self.open_quest_custom_objects,
+        )
+        self.home_open_btn.pack(side=tk.RIGHT)
+
+        status_row = ttk.Frame(outer)
+        status_row.pack(fill=tk.X, pady=(10, 8))
+        ttk.Label(status_row, text="Quest:").pack(side=tk.LEFT)
+        self.home_connection_var = tk.StringVar(value="Checking connection…")
+        self.home_connection_label = ttk.Label(
+            status_row,
+            textvariable=self.home_connection_var,
+            foreground="#444444",
+        )
+        self.home_connection_label.pack(side=tk.LEFT, padx=(6, 0))
 
         adb = find_adb()
         if not adb:
             ttk.Label(
-                center,
+                outer,
                 text="adb not found — run scripts/copy-adb.ps1",
                 foreground="#aa3300",
-            ).pack(pady=(12, 0))
+            ).pack(anchor=tk.W, pady=(0, 6))
+
+        manual_bar = ttk.Frame(outer)
+        manual_bar.pack(fill=tk.X, pady=(4, 0))
+
+        ttk.Label(manual_bar, text="Manual:").pack(side=tk.LEFT)
+
+        self.manual_lang_var = tk.StringVar(value="English")
+        self.manual_lang_combo = ttk.Combobox(
+            manual_bar,
+            textvariable=self.manual_lang_var,
+            values=("English", "pt-BR"),
+            state="readonly",
+            width=10,
+        )
+        self.manual_lang_combo.pack(side=tk.LEFT, padx=(6, 0))
+        self.manual_lang_combo.bind("<<ComboboxSelected>>", self._on_manual_language_selected)
+
+        self.manual_frame = ttk.LabelFrame(
+            outer,
+            text=MANUAL_LABELS["en"],
+            padding=(8, 6),
+        )
+        self.manual_frame.pack(fill=tk.BOTH, expand=True, pady=(6, 0))
+
+        self.manual_view = ManualViewer(
+            self.manual_frame,
+            on_language_link=self._on_manual_language_link,
+        )
+        self.manual_view.pack(fill=tk.BOTH, expand=True)
+        self._load_manual_view("en")
+
+    def _load_manual_view(self, locale: ManualLocale) -> None:
+        self._manual_locale = locale
+        self.manual_frame.configure(text=MANUAL_LABELS[locale])
+        self.manual_view.load_markdown(load_user_manual_text(locale))
+        self.manual_view.see("1.0")
+
+    def _on_manual_language_selected(self, _event: tk.Event | None = None) -> None:
+        locale: ManualLocale = "en" if self.manual_lang_var.get() == "English" else "pt"
+        self._load_manual_view(locale)
+
+    def _on_manual_language_link(self, target: str) -> None:
+        locale = locale_from_manual_link(target)
+        if locale is None:
+            return
+        self.manual_lang_var.set("English" if locale == "en" else "pt-BR")
+        self._load_manual_view(locale)
+
+    def _refresh_home_connection_ui(self) -> None:
+        if not hasattr(self, "home_connection_var"):
+            return
+
+        if self._device_connected:
+            self.home_connection_var.set(self._device_status_message)
+            self.home_connection_label.configure(foreground="#1a6b1a")
+            self.home_open_btn.configure(state=tk.NORMAL)
+        else:
+            self.home_connection_var.set(self._device_status_message or "Not connected")
+            self.home_connection_label.configure(foreground="#aa3300")
+            self.home_open_btn.configure(state=tk.DISABLED)
+
+        reconnect_state = tk.DISABLED if self._startup_connect_running else tk.NORMAL
+        self.home_reconnect_btn.configure(state=reconnect_state)
+
+    def _begin_startup_connect(self) -> None:
+        if self._startup_connect_running:
+            return
+
+        self._startup_connect_running = True
+        self.show_loading_screen()
+        threading.Thread(target=self._startup_connect_worker, daemon=True).start()
+
+    def _startup_connect_worker(self) -> None:
+        result = check_device_connected()
+        self.after(0, lambda: self._on_startup_connect_done(result.ok, result.message))
+
+    def _on_startup_connect_done(self, connected: bool, message: str) -> None:
+        self._startup_connect_running = False
+        self._device_connected = connected
+        self._device_status_message = message
+        self.show_home_screen()
 
     def open_quest_custom_objects(self) -> None:
-        self.set_status("Connecting to Quest…")
+        if not self._device_connected:
+            messagebox.showerror(
+                APP_NAME,
+                self._device_status_message or "Meta Quest not connected.",
+            )
+            return
+
+        self.set_status("Opening Custom Objects…")
         self.update_idletasks()
 
         device = check_device_connected()
         if not device.ok:
+            self._device_connected = False
+            self._device_status_message = device.message
+            self._refresh_home_connection_ui()
             messagebox.showerror(APP_NAME, device.message)
             self.set_status(device.message)
             return
@@ -160,7 +305,7 @@ class StudioApp(tk.Tk):
         if not result.ok:
             messagebox.showerror(APP_NAME, result.message)
             self.set_status(result.message)
-            self.show_start_screen()
+            self.show_home_screen()
             return
 
         count = sum(1 for entry in entries if entry.is_dir)
@@ -172,7 +317,7 @@ class StudioApp(tk.Tk):
 
         ttk.Button(header, text="Refresh", command=self.refresh_quest_listing).pack(side=tk.LEFT)
         ttk.Button(header, text="Create folder", command=self.create_quest_folder).pack(side=tk.LEFT, padx=(6, 0))
-        ttk.Button(header, text="Home", command=self.show_start_screen).pack(side=tk.LEFT, padx=(6, 0))
+        ttk.Button(header, text="Home", command=self.show_home_screen).pack(side=tk.LEFT, padx=(6, 0))
         ttk.Button(header, text="Check device", command=self.check_device).pack(side=tk.RIGHT)
 
         path_row = ttk.Frame(header)
@@ -277,7 +422,7 @@ class StudioApp(tk.Tk):
         header.pack(fill=tk.X)
 
         ttk.Button(header, text="Back", command=self.show_workspace_screen).pack(side=tk.LEFT)
-        ttk.Button(header, text="Home", command=self.show_start_screen).pack(side=tk.LEFT, padx=(6, 0))
+        ttk.Button(header, text="Home", command=self.show_home_screen).pack(side=tk.LEFT, padx=(6, 0))
         ttk.Button(header, text="Refresh", command=self.load_package_editor).pack(side=tk.LEFT, padx=(6, 0))
         ttk.Button(header, text="Add model", command=self.add_model_to_package).pack(side=tk.LEFT, padx=(6, 0))
 
@@ -520,11 +665,15 @@ class StudioApp(tk.Tk):
 
     def check_device(self) -> None:
         result = check_device_connected()
+        self._device_connected = result.ok
+        self._device_status_message = result.message
         if result.ok:
             messagebox.showinfo(APP_NAME, result.message)
         else:
             messagebox.showerror(APP_NAME, result.message)
         self.set_status(result.message)
+        if hasattr(self, "home_connection_var"):
+            self._refresh_home_connection_ui()
 
     def go_custom_objects(self) -> None:
         self.quest_navigate_to(QUEST_CUSTOM_OBJECTS)

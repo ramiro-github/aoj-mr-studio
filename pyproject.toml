@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aoj-mr-studio"
-version = "0.1.0"
+version = "0.1.1"
 description = "Editor for Age of Joy MR custom object packages (object.yaml) with Quest ADB sync"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -24,6 +24,9 @@ aoj-mr-studio = "aoj_mr_studio.__main__:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["aoj_mr_studio*"]
+
+[tool.setuptools.package-data]
+aoj_mr_studio = ["data/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

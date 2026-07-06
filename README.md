@@ -12,7 +12,9 @@ Extract the folder and run `AOJ MR Studio.exe`. No Python install required.
 
 ## Features (current)
 
+- **Startup** — connects to Meta Quest on launch (loading screen), then opens **Home** with the bundled MR user guide (**pt-BR** and **English**), styled text and clickable table of contents
 - Browse Quest folders under `/sdcard/Android/data/com.curif.AgeOfJoy/MR/` via **ADB**
+- Edit custom object packages (`object.yaml`, Placement, Components) and **Save to Meta Quest**
 - **Bundled adb** support (SideQuest-style) — no separate platform-tools install for end users
 
 ## Requirements (development)
