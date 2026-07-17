@@ -383,13 +383,15 @@ Components are behaviours attached when the object spawns in MR. In the Studio, 
 | **video** | Play video on a model screen | **file** — `.mp4` in the package; **target** — GLB child mesh (e.g. `Screen`); **loop**, **volume** |
 | **rotator** | Spin a part of the model continuously | **target** — GLB child (e.g. `Blades`); **axis** — x/y/z; **speed** — degrees per second |
 | **animator** | Play an animation embedded in the GLB | **clip** — animation name in the file; **target** — bone/mesh (optional); **loop**, **speed** |
+| **light** | Attach a Unity light to the object | **type** — `point` or `spot`; **intensity**, **range**; **color** R/G/B (0–1); **target** — GLB child (optional); **spotAngle** / **innerSpotAngle** (spot only); **shadows** |
 
 **Tips:**
 
 - **target** names must match parts of the **`.glb`** (the Studio lists suggestions after reading the model).
 - **video**: prefer **MP4 H.264** (`yuv420p`) on Quest; put the file in the same package folder in the Studio before saving.
 - **grab** with **twoHands** requires holding both handles — useful for handheld-style props.
-- One object can have **multiple components** (e.g. `rotator` + `grab`).
+- **light**: keep **shadows** off on Quest; for a flashlight, use `type: spot` + `grab` and aim **target** along local **+Z**.
+- One object can have **multiple components** (e.g. `rotator` + `grab`, or `grab` + `light`).
 
 #### In the game (after creating the package)
 
@@ -604,7 +606,7 @@ Your room will be exactly as you left it the next time you start Age of Joy.
 | **Custom Objects** | Create package folders, upload `.glb`, edit placement and components, save `object.yaml` on Quest |
 | **Quest connection** | **Reconnect** on Home; **Check device** on the package list to test ADB |
 
-The full workflow for **custom objects** is in [section 11](#11-custom-objects) (Placement, Components **grab** / **video** / **rotator** / **animator**).
+The full workflow for **custom objects** is in [section 11](#11-custom-objects) (Placement, Components **grab** / **video** / **rotator** / **animator** / **light**).
 
 Posters and room skins are still added through the game or the flows in [sections 12](#12-posters) and [13](#13-room-skin); broader Studio support may arrive in future versions.
 

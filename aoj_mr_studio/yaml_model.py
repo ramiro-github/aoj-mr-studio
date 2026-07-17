@@ -77,6 +77,16 @@ class ObjectDefinition:
     animator_loop: bool = True
     animator_play_on_awake: bool = True
     animator_speed: float = 1.0
+    light_target: str = ""
+    light_type: str = "point"
+    light_intensity: float = 2.0
+    light_range: float = 4.0
+    light_color_r: float = 1.0
+    light_color_g: float = 1.0
+    light_color_b: float = 1.0
+    light_spot_angle: float = 60.0
+    light_inner_spot_angle: float = 30.0
+    light_shadows: bool = False
 
     @classmethod
     def default_for_package(cls, package_name: str) -> ObjectDefinition:
@@ -98,6 +108,8 @@ class ObjectDefinition:
         video = data.get("video") or {}
         rotator = data.get("rotator") or {}
         animator = data.get("animator") or {}
+        light = data.get("light") or {}
+        light_color = light.get("color") or {}
         raw_components = data.get("components") or []
 
         components: list[str] = []
@@ -148,6 +160,16 @@ class ObjectDefinition:
             animator_loop=bool(animator.get("loop", True)),
             animator_play_on_awake=bool(animator.get("playOnAwake", True)),
             animator_speed=float(animator.get("speed", 1.0)),
+            light_target=str(light.get("target") or ""),
+            light_type=str(light.get("type") or "point"),
+            light_intensity=float(light.get("intensity", 2.0)),
+            light_range=float(light.get("range", 4.0)),
+            light_color_r=float(light_color.get("r", 1.0)),
+            light_color_g=float(light_color.get("g", 1.0)),
+            light_color_b=float(light_color.get("b", 1.0)),
+            light_spot_angle=float(light.get("spotAngle", 60.0)),
+            light_inner_spot_angle=float(light.get("innerSpotAngle", 30.0)),
+            light_shadows=bool(light.get("shadows", False)),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -250,6 +272,25 @@ class ObjectDefinition:
                 animator["speed"] = self.animator_speed
             data["animator"] = animator
 
+        if "light" in self.components:
+            light: dict[str, Any] = {
+                "type": self.light_type,
+                "intensity": self.light_intensity,
+                "range": self.light_range,
+                "color": {
+                    "r": self.light_color_r,
+                    "g": self.light_color_g,
+                    "b": self.light_color_b,
+                },
+                "shadows": self.light_shadows,
+            }
+            if self.light_target:
+                light["target"] = self.light_target
+            if self.light_type == "spot":
+                light["spotAngle"] = self.light_spot_angle
+                light["innerSpotAngle"] = self.light_inner_spot_angle
+            data["light"] = light
+
         return data
 
     def validate(self, package_dir: Path) -> list[str]:
@@ -268,7 +309,7 @@ class ObjectDefinition:
             errors.append(f"collision.mode must be mesh|box|none, got {self.collision_mode}")
 
         for component in self.components:
-            if component not in ("grab", "video", "rotator", "animator"):
+            if component not in ("grab", "video", "rotator", "animator", "light"):
                 errors.append(f"unknown component: {component}")
 
         if "video" in self.components:
@@ -284,6 +325,17 @@ class ObjectDefinition:
 
         if "animator" in self.components and not self.animator_clip:
             errors.append("animator.clip is required when animator component is enabled")
+
+        if "light" in self.components:
+            if self.light_type not in ("point", "spot"):
+                errors.append("light.type must be point or spot")
+            for channel, value in (
+                ("R", self.light_color_r),
+                ("G", self.light_color_g),
+                ("B", self.light_color_b),
+            ):
+                if value < 0.0 or value > 1.0:
+                    errors.append(f"light.color {channel} must be between 0 and 1")
 
         if self.audio_file and not (package_dir / self.audio_file).is_file():
             errors.append(f"audio file not found: {self.audio_file}")

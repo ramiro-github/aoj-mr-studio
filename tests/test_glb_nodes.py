@@ -10,6 +10,7 @@ from aoj_mr_studio.glb_nodes import (
     read_glb_node_names,
     suggest_animator_clip,
     suggest_animator_target,
+    suggest_light_target,
     suggest_rotator_target,
 )
 from aoj_mr_studio.package_defaults import PackageContext, suggest_component_config
@@ -197,3 +198,25 @@ def test_suggest_component_config_rotator(tmp_path: Path) -> None:
     assert config["target"] == "Blades"
     assert config["axis"] == "y"
     assert config["speed"] == 180.0
+
+
+def test_suggest_light_target_prefers_bulb() -> None:
+    assert suggest_light_target(["Root", "Shade", "Bulb"]) == "Bulb"
+    assert suggest_light_target(["Root", "Base"]) == ""
+
+
+def test_suggest_component_config_light(tmp_path: Path) -> None:
+    context = PackageContext(
+        package_name="Lamp",
+        remote_path="/quest/Custom Objects/Lamp",
+        cache_root=tmp_path,
+        glb_node_names=["Root", "Bulb", "Shade"],
+        model_file="lamp.glb",
+    )
+    config = suggest_component_config("light", context)
+    assert config["target"] == "Bulb"
+    assert config["type"] == "point"
+    assert config["intensity"] == 2.0
+    assert config["range"] == 4.0
+    assert config["color"] == "#ffffff"
+    assert config["shadows"] is False

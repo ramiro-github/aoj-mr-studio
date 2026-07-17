@@ -15,6 +15,7 @@ from aoj_mr_studio.glb_nodes import (
     read_glb_node_names,
     suggest_animator_clip,
     suggest_animator_target,
+    suggest_light_target,
     suggest_rotator_target,
     suggest_video_target,
 )
@@ -95,6 +96,10 @@ def suggest_component_config(comp_id: str, context: PackageContext | None) -> di
         base["target"] = suggest_animator_target(context.glb_node_names, context.local_glb_path)
         return base
 
+    if comp_id == "light":
+        base["target"] = suggest_light_target(context.glb_node_names)
+        return base
+
     return base
 
 
@@ -149,5 +154,8 @@ def str_field_suggestions(comp_id: str, field_key: str, context: PackageContext 
             return list(context.glb_animation_names)
         if field_key == "target":
             return list_animator_target_candidates(context.glb_node_names, context.local_glb_path)
+
+    if comp_id == "light" and field_key == "target":
+        return list(context.glb_node_names)
 
     return []

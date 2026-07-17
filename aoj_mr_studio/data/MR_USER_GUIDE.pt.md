@@ -383,13 +383,15 @@ Componentes são comportamentos ligados ao objeto quando ele aparece no MR. No S
 | **video** | Reproduz vídeo numa tela do modelo | **file** — `.mp4` no pacote; **target** — malha filha do GLB (ex.: `Screen`); **loop**, **volume** |
 | **rotator** | Gira uma parte do modelo continuamente | **target** — filho do GLB (ex.: `Blades`); **axis** — eixo x/y/z; **speed** — graus por segundo |
 | **animator** | Toca animação embutida no GLB | **clip** — nome da animação no arquivo; **target** — osso/malha (opcional); **loop**, **speed** |
+| **light** | Adiciona uma luz Unity ao objeto | **type** — `point` ou `spot`; **intensity**, **range**; **color** R/G/B (0–1); **target** — filho do GLB (opcional); **spotAngle** / **innerSpotAngle** (só spot); **shadows** |
 
 **Dicas:**
 
 - Os nomes **target** devem corresponder a partes do **`.glb`** (o Studio lista sugestões ao ler o modelo).
 - **video**: prefira **MP4 H.264** (`yuv420p`) no Quest; coloque o arquivo na mesma pasta do pacote no Studio antes de salvar.
 - **grab** com **twoHands** exige segurar as duas alças — útil para objetos tipo console portátil.
-- Um objeto pode ter **vários componentes** (ex.: `rotator` + `grab`).
+- **light**: no Quest, deixe **shadows** desligado; para lanterna, use `type: spot` + `grab` e oriente o **target** no eixo local **+Z**.
+- Um objeto pode ter **vários componentes** (ex.: `rotator` + `grab`, ou `grab` + `light`).
 
 #### No jogo (após criar o pacote)
 
@@ -604,7 +606,7 @@ O **AOJ MR Studio** é a ferramenta oficial no **Windows** para criar e enviar c
 | **Custom Objects** | Criar pastas de pacote, enviar `.glb`, editar colocação e componentes, salvar `object.yaml` no Quest |
 | **Conexão Quest** | **Reconnect** na Home; **Check device** na lista de pacotes para testar ADB |
 
-O fluxo completo para **objetos personalizados** está na [seção 11](#11-objetos-personalizados) (Placement, Components **grab** / **video** / **rotator** / **animator**).
+O fluxo completo para **objetos personalizados** está na [seção 11](#11-objetos-personalizados) (Placement, Components **grab** / **video** / **rotator** / **animator** / **light**).
 
 Posters e Room Skins continuam sendo adicionados pelo jogo ou por fluxos específicos nas [seções 12](#12-posters) e [13](#13-room-skin); suporte ampliado no Studio pode chegar em versões futuras.
 

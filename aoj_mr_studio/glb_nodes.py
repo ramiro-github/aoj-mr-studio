@@ -11,6 +11,16 @@ from typing import Any
 _PREFERRED_ROTATOR_NODES = ("Blades", "Fan", "Rotor", "Spinner", "Propeller", "Wheel")
 _PREFERRED_VIDEO_NODES = ("Screen", "Display", "Monitor", "TV", "Panel")
 _PREFERRED_ANIMATOR_NODES = ("Armature", "Character", "Rig", "Skeleton")
+_PREFERRED_LIGHT_NODES = (
+    "Bulb",
+    "BeamOrigin",
+    "Beam",
+    "Light",
+    "Lamp",
+    "Emitter",
+    "Spot",
+    "PointLight",
+)
 _SKIP_NODE_NAMES = frozenset({"", "Root", "Scene"})
 _BLENDER_MESH_DUPLICATE_SUFFIX = re.compile(r"\.\d{3,}$")
 
@@ -123,6 +133,11 @@ def suggest_video_target(node_names: list[str]) -> str:
     if picked:
         return picked
     return first_useful_node(node_names)
+
+
+def suggest_light_target(node_names: list[str]) -> str:
+    """Prefer bulb/beam nodes; empty = attach light at package root."""
+    return pick_preferred_node(node_names, _PREFERRED_LIGHT_NODES)
 
 
 def suggest_animator_clip(animation_names: list[str]) -> str:

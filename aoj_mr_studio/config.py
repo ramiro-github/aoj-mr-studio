@@ -36,7 +36,7 @@ STICK_ROTATION_AXES: dict[int, str] = {
 }
 
 COLLISION_MODES = ("mesh", "box", "none")
-COMPONENT_IDS = ("grab", "video", "rotator", "animator")
+COMPONENT_IDS = ("grab", "video", "rotator", "animator", "light")
 
 
 def default_local_custom_objects() -> Path:

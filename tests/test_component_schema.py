@@ -1,13 +1,13 @@
 """Tests for component schema merge."""
 
+import pytest
+import yaml
+
 from aoj_mr_studio.component_schema import (
     apply_components_to_yaml_text,
     component_rows_from_dict,
     serialize_component_block,
 )
-
-import yaml
-
 
 def test_component_rows_from_dict() -> None:
     data = {
@@ -97,3 +97,111 @@ def test_serialize_animator() -> None:
     assert block["clip"] == "Walk"
     assert block["target"] == "Character"
     assert "speed" not in block
+
+
+def test_serialize_light_point() -> None:
+    block = serialize_component_block(
+        "light",
+        {
+            "target": "Bulb",
+            "type": "point",
+            "intensity": 1.5,
+            "range": 3.5,
+            "color": "#ffd999",
+            "spotAngle": 60.0,
+            "innerSpotAngle": 30.0,
+            "shadows": False,
+        },
+    )
+    assert block["target"] == "Bulb"
+    assert block["type"] == "point"
+    assert block["intensity"] == 1.5
+    assert block["range"] == 3.5
+    assert block["color"]["r"] == pytest.approx(1.0, abs=0.001)
+    assert block["color"]["g"] == pytest.approx(0.85, abs=0.01)
+    assert block["color"]["b"] == pytest.approx(0.6, abs=0.01)
+    assert block["shadows"] is False
+    assert "spotAngle" not in block
+    assert "innerSpotAngle" not in block
+
+
+def test_serialize_light_spot_includes_cone() -> None:
+    block = serialize_component_block(
+        "light",
+        {
+            "target": "BeamOrigin",
+            "type": "spot",
+            "intensity": 3.0,
+            "range": 8.0,
+            "color": "#fff2d9",
+            "spotAngle": 35.0,
+            "innerSpotAngle": 20.0,
+            "shadows": False,
+        },
+    )
+    assert block["type"] == "spot"
+    assert block["spotAngle"] == 35.0
+    assert block["innerSpotAngle"] == 20.0
+
+
+def test_component_rows_from_dict_expands_light_color() -> None:
+    data = {
+        "components": ["light"],
+        "light": {
+            "target": "Bulb",
+            "type": "point",
+            "intensity": 1.5,
+            "range": 3.5,
+            "color": {"r": 1.0, "g": 0.85, "b": 0.6},
+            "shadows": False,
+        },
+    }
+    rows = component_rows_from_dict(data)
+    assert rows[0][0] == "light"
+    assert rows[0][1]["color"] == "#ffd999"
+
+
+def test_validate_light_invalid_color() -> None:
+    from aoj_mr_studio.component_schema import validate_component_rows
+
+    errors = validate_component_rows(
+        [
+            (
+                "light",
+                {
+                    "type": "point",
+                    "intensity": 2.0,
+                    "range": 4.0,
+                    "color": "not-a-color",
+                    "spotAngle": 60.0,
+                    "innerSpotAngle": 30.0,
+                    "shadows": False,
+                },
+            )
+        ]
+    )
+    assert any("color" in error for error in errors)
+
+
+def test_apply_components_includes_light() -> None:
+    base = "version: 1\nname: Lamp\nmodel:\n  file: lamp.glb\n"
+    rows = [
+        (
+            "light",
+            {
+                "target": "Bulb",
+                "type": "point",
+                "intensity": 1.5,
+                "range": 3.5,
+                "color": "#ffd999",
+                "spotAngle": 60.0,
+                "innerSpotAngle": 30.0,
+                "shadows": False,
+            },
+        ),
+    ]
+    merged = apply_components_to_yaml_text(base, rows)
+    parsed = yaml.safe_load(merged)
+    assert parsed["components"] == ["light"]
+    assert parsed["light"]["target"] == "Bulb"
+    assert parsed["light"]["color"]["g"] == pytest.approx(0.85, abs=0.01)

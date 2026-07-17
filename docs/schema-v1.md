@@ -27,5 +27,7 @@ Full spec in Age of Joy: `Assets/ramiro/CUSTOM_OBJECT_YAML.md` (branch `0.5.0`).
 - `grab` — XR grab (`grab:` block)
 - `video` — video on child mesh (`video:` block)
 - `rotator` — spin GLB child (`rotator:` block)
+- `animator` — play embedded GLB animation (`animator:` block)
+- `light` — Unity point/spot light (`light:` block)
 
 AOJ MR Studio edits only `object.yaml`. Room poses live in `MR/objects-layout.yaml` (not edited in v0.1).

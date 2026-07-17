@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import colorchooser, messagebox, ttk
 from typing import Any, Callable
 
 from aoj_mr_studio.component_schema import (
     COMPONENT_SCHEMAS,
     component_rows_from_dict,
-    normalize_component_config,
+    normalize_hex_color,
 )
 from aoj_mr_studio.config import COMPONENT_IDS
 from aoj_mr_studio.glb_nodes import looks_like_bone_name
@@ -39,6 +39,7 @@ class ComponentRow(ttk.Frame):
         self.on_remove = on_remove
         self.on_change = on_change
         self.field_vars: dict[str, tk.Variable] = {}
+        self._color_swatches: dict[str, tk.Label] = {}
 
         type_cell = ttk.Frame(self)
         type_cell.pack(side=tk.LEFT, padx=(0, 8))
@@ -78,10 +79,65 @@ class ComponentRow(ttk.Frame):
             return True
         return False
 
+    def _update_color_swatch(self, field_key: str, *_args: object) -> None:
+        swatch = self._color_swatches.get(field_key)
+        var = self.field_vars.get(field_key)
+        if swatch is None or var is None:
+            return
+        hex_value = normalize_hex_color(var.get())
+        try:
+            swatch.configure(background=hex_value)
+        except tk.TclError:
+            swatch.configure(background="#ffffff")
+
+    def _pick_color(self, field_key: str) -> None:
+        var = self.field_vars.get(field_key)
+        if var is None:
+            return
+        initial = normalize_hex_color(var.get())
+        _rgb, hex_result = colorchooser.askcolor(
+            color=initial,
+            title="Light color (RGB)",
+            parent=self.winfo_toplevel(),
+        )
+        if hex_result:
+            var.set(str(hex_result).lower())
+
+    def _build_color_picker(self, cell: ttk.Frame, field_key: str, value: str) -> tk.Variable:
+        var = tk.StringVar(value=normalize_hex_color(value))
+        picker = ttk.Frame(cell)
+        picker.pack(anchor=tk.W)
+
+        swatch = tk.Label(
+            picker,
+            width=3,
+            relief=tk.SUNKEN,
+            borderwidth=1,
+            background=normalize_hex_color(value),
+        )
+        swatch.pack(side=tk.LEFT, padx=(0, 4), ipady=4)
+        self._color_swatches[field_key] = swatch
+
+        ttk.Button(
+            picker,
+            text="Pick…",
+            width=7,
+            command=lambda: self._pick_color(field_key),
+        ).pack(side=tk.LEFT)
+
+        entry = ttk.Entry(picker, textvariable=var, width=9)
+        entry.pack(side=tk.LEFT, padx=(4, 0))
+
+        var.trace_add("write", lambda *_args: self._update_color_swatch(field_key))
+        var.trace_add("write", self._notify_change)
+        self._update_color_swatch(field_key)
+        return var
+
     def _build_option_columns(self, config: dict[str, Any] | None) -> None:
         for child in self.options_frame.winfo_children():
             child.destroy()
         self.field_vars.clear()
+        self._color_swatches.clear()
 
         comp_id = self.type_var.get()
         schema = COMPONENT_SCHEMAS.get(comp_id, ())
@@ -97,6 +153,8 @@ class ComponentRow(ttk.Frame):
             if field.kind == "bool":
                 var: tk.Variable = tk.BooleanVar(value=bool(normalized[field.key]))
                 widget: tk.Widget = ttk.Checkbutton(cell, variable=var)
+                var.trace_add("write", self._notify_change)
+                widget.pack(anchor=tk.W)
             elif field.kind == "choice":
                 var = tk.StringVar(value=str(normalized[field.key]))
                 widget = ttk.Combobox(
@@ -106,9 +164,15 @@ class ComponentRow(ttk.Frame):
                     state="readonly",
                     width=8,
                 )
+                var.trace_add("write", self._notify_change)
+                widget.pack(anchor=tk.W)
+            elif field.kind == "color":
+                var = self._build_color_picker(cell, field.key, str(normalized[field.key]))
             elif field.kind == "float":
                 var = tk.StringVar(value=str(normalized[field.key]))
                 widget = ttk.Entry(cell, textvariable=var, width=10)
+                var.trace_add("write", self._notify_change)
+                widget.pack(anchor=tk.W)
             else:
                 var = tk.StringVar(value=str(normalized[field.key]))
                 suggestions = str_field_suggestions(comp_id, field.key, context)
@@ -121,9 +185,9 @@ class ComponentRow(ttk.Frame):
                     )
                 else:
                     widget = ttk.Entry(cell, textvariable=var, width=14)
+                var.trace_add("write", self._notify_change)
+                widget.pack(anchor=tk.W)
 
-            var.trace_add("write", self._notify_change)
-            widget.pack(anchor=tk.W)
             self.field_vars[field.key] = var
 
     def get_row(self) -> tuple[str, dict[str, Any]]:
@@ -140,6 +204,8 @@ class ComponentRow(ttk.Frame):
                     config[field.key] = float(raw)
                 except (TypeError, ValueError):
                     config[field.key] = float(field.default)
+            elif field.kind == "color":
+                config[field.key] = normalize_hex_color(raw, str(field.default))
             else:
                 config[field.key] = str(raw).strip() if field.kind == "str" else str(raw)
 
