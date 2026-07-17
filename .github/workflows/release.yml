@@ -34,15 +34,20 @@ jobs:
         run: pytest
 
       - name: Build executable
-        run: pyinstaller --noconfirm aoj-mr-studio.spec
+        run: pyinstaller --clean --noconfirm aoj-mr-studio.spec
 
       - name: Verify build output
         shell: pwsh
         run: |
-          $exe = "dist/AOJ MR Studio/AOJ MR Studio.exe"
-          $adb = "dist/AOJ MR Studio/adb/adb.exe"
+          $out = "dist/AOJ MR Studio"
+          $exe = Join-Path $out "AOJ MR Studio.exe"
+          $adb = Join-Path $out "adb/adb.exe"
           if (-not (Test-Path $exe)) { throw "Missing $exe" }
           if (-not (Test-Path $adb)) { throw "Missing bundled $adb" }
+          foreach ($name in @("AdbWinApi.dll", "AdbWinUsbApi.dll")) {
+            $dll = Join-Path $out "adb/$name"
+            if (-not (Test-Path $dll)) { throw "Missing bundled $dll" }
+          }
 
       - name: Create zip
         shell: pwsh

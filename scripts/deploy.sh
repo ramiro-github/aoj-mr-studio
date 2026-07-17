@@ -100,8 +100,13 @@ elif [[ -x ".venv/bin/python" ]]; then
   .venv/bin/python -m pytest
 elif command -v pytest >/dev/null 2>&1; then
   pytest
-else
+elif command -v python3 >/dev/null 2>&1; then
+  python3 -m pytest
+elif command -v python >/dev/null 2>&1; then
   python -m pytest
+else
+  echo "Error: pytest not found and neither python3 nor python is available in PATH."
+  exit 1
 fi
 
 echo ""

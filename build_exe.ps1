@@ -18,7 +18,7 @@ if (Test-Path ".venv\Scripts\pip.exe") {
 }
 
 Write-Host "=== PyInstaller (onedir) ==="
-& $PyInstaller --noconfirm "aoj-mr-studio.spec"
+& $PyInstaller --clean --noconfirm "aoj-mr-studio.spec"
 
 $OutDir = Join-Path $Root "dist\AOJ MR Studio"
 if (Test-Path (Join-Path $OutDir "AOJ MR Studio.exe")) {
