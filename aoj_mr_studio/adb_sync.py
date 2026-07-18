@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shlex
+import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -36,6 +37,8 @@ def run_adb(*args: str, timeout: float = 120.0) -> AdbResult:
             [adb, *args],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="surrogateescape",
             timeout=timeout,
             check=False,
             cwd=str(adb_path.parent) if adb_path.parent.is_dir() else None,
@@ -181,6 +184,26 @@ def pull_remote_file(remote_path: str, local_path: Path) -> AdbResult:
     return run_adb("pull", remote_path, str(local_path), timeout=120.0)
 
 
+def pull_remote_dir(remote_path: str, local_dir: Path) -> AdbResult:
+    """Pull a remote folder into local_dir (creates/overwrites that folder)."""
+    device = check_device_connected()
+    if not device.ok:
+        return device
+
+    if local_dir.exists():
+        shutil.rmtree(local_dir)
+    local_dir.parent.mkdir(parents=True, exist_ok=True)
+
+    # Pull into the parent so adb creates local_dir with the remote folder name,
+    # then rename if needed — or pull directly to local_dir path.
+    result = run_adb("pull", remote_path, str(local_dir), timeout=600.0)
+    if not result.ok:
+        return result
+    if not local_dir.is_dir():
+        return AdbResult(False, f"pull did not create folder: {local_dir}")
+    return result
+
+
 def push_remote_file(local_path: Path, remote_path: str) -> AdbResult:
     device = check_device_connected()
     if not device.ok:
@@ -190,6 +213,18 @@ def push_remote_file(local_path: Path, remote_path: str) -> AdbResult:
         return AdbResult(False, f"local file not found: {local_path}")
 
     return run_adb("push", str(local_path), remote_path, timeout=120.0)
+
+
+def push_local_dir(local_dir: Path, remote_parent: str) -> AdbResult:
+    """Push a whole local folder into a remote parent folder (one adb call)."""
+    device = check_device_connected()
+    if not device.ok:
+        return device
+
+    if not local_dir.is_dir():
+        return AdbResult(False, f"local folder not found: {local_dir}")
+
+    return run_adb("push", str(local_dir), remote_parent.rstrip("/") + "/", timeout=600.0)
 
 
 def remote_dir_exists(remote_path: str) -> tuple[AdbResult, bool]:
@@ -209,3 +244,16 @@ def create_remote_dir(remote_path: str) -> AdbResult:
         return device
 
     return run_adb_shell(f"mkdir -p {quote_shell_path(remote_path)}")
+
+
+def delete_remote_dir(remote_path: str) -> AdbResult:
+    """Recursively delete one remote folder."""
+    normalized = remote_path.rstrip("/")
+    if not normalized or normalized == "/":
+        return AdbResult(False, "refusing to delete the remote root folder")
+
+    device = check_device_connected()
+    if not device.ok:
+        return device
+
+    return run_adb_shell(f"rm -rf {quote_shell_path(normalized)}")

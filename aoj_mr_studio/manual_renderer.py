@@ -7,6 +7,16 @@ import tkinter as tk
 from tkinter import scrolledtext
 from typing import Callable
 
+from aoj_mr_studio.theme import (
+    ACCENT_FG,
+    CODE_BG,
+    CODE_FG,
+    HR_FG,
+    LINK_FG,
+    MUTED_FG,
+    style_text_widget,
+)
+
 _HEADING_RE = re.compile(r"^(#{1,4})\s+(.*)$")
 _ORDERED_RE = re.compile(r"^(\d+)\.\s+(.*)$")
 _TOC_LINK_RE = re.compile(r"\[([^\]]+)\]\((#[^)]+)\)")
@@ -77,6 +87,7 @@ class ManualViewer(scrolledtext.ScrolledText):
         kwargs.setdefault("borderwidth", 0)
         kwargs.setdefault("highlightthickness", 0)
         super().__init__(master, **kwargs)
+        style_text_widget(self)
         self._on_language_link = on_language_link
         self._configure_tags()
         self.bind("<Key>", self._on_key)
@@ -86,25 +97,25 @@ class ManualViewer(scrolledtext.ScrolledText):
         self.tag_configure(
             "h2",
             font=("Segoe UI", 13, "bold"),
-            foreground="#1a4d8c",
+            foreground=ACCENT_FG,
             spacing1=14,
             spacing3=6,
         )
         self.tag_configure("h3", font=("Segoe UI", 11, "bold"), spacing1=10, spacing3=4)
         self.tag_configure("h4", font=("Segoe UI", 10, "bold"), spacing1=8, spacing3=2)
         self.tag_configure("bold", font=("Segoe UI", 10, "bold"))
-        self.tag_configure("muted", foreground="#666666")
+        self.tag_configure("muted", foreground=MUTED_FG)
         self.tag_configure(
             "code",
             font=("Consolas", 9),
-            background="#f3f3f3",
-            foreground="#333333",
+            background=CODE_BG,
+            foreground=CODE_FG,
         )
         self.tag_configure(
             "code_block",
             font=("Consolas", 9),
-            background="#f3f3f3",
-            foreground="#333333",
+            background=CODE_BG,
+            foreground=CODE_FG,
             lmargin1=12,
             lmargin2=12,
             rmargin=12,
@@ -113,7 +124,7 @@ class ManualViewer(scrolledtext.ScrolledText):
         )
         self.tag_configure(
             "blockquote",
-            foreground="#555555",
+            foreground=MUTED_FG,
             lmargin1=18,
             lmargin2=18,
             spacing1=4,
@@ -123,7 +134,7 @@ class ManualViewer(scrolledtext.ScrolledText):
         self.tag_configure("ordered", lmargin1=20, lmargin2=32, spacing3=2)
         self.tag_configure("table", font=("Consolas", 9), spacing3=2)
         self.tag_configure("table_header", font=("Consolas", 9, "bold"), spacing3=2)
-        self.tag_configure("hr", foreground="#cccccc", justify=tk.CENTER, spacing1=8, spacing3=8)
+        self.tag_configure("hr", foreground=HR_FG, justify=tk.CENTER, spacing1=8, spacing3=8)
         self.tag_configure("toc_title", font=("Segoe UI", 12, "bold"), spacing1=6, spacing3=4)
 
     def _on_key(self, event: tk.Event) -> str | None:
@@ -302,7 +313,7 @@ class ManualViewer(scrolledtext.ScrolledText):
             tag_name = f"link_{anchor}"
             link_tags = (tag_name, *(extra_tags or []))
             self.insert(tk.END, label, link_tags)
-            self.tag_configure(tag_name, foreground="#1565c0", underline=True)
+            self.tag_configure(tag_name, foreground=LINK_FG, underline=True)
             self.tag_bind(tag_name, "<Enter>", lambda _e: self.configure(cursor="hand2"))
             self.tag_bind(tag_name, "<Leave>", lambda _e: self.configure(cursor="arrow"))
             self.tag_bind(
@@ -317,7 +328,7 @@ class ManualViewer(scrolledtext.ScrolledText):
             tag_name = f"lang_{lowered.replace('.', '_')}"
             link_tags = (tag_name, *(extra_tags or []))
             self.insert(tk.END, label, link_tags)
-            self.tag_configure(tag_name, foreground="#1565c0", underline=True)
+            self.tag_configure(tag_name, foreground=LINK_FG, underline=True)
             self.tag_bind(tag_name, "<Enter>", lambda _e: self.configure(cursor="hand2"))
             self.tag_bind(tag_name, "<Leave>", lambda _e: self.configure(cursor="arrow"))
             self.tag_bind(

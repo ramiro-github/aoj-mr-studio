@@ -19,6 +19,7 @@ from aoj_mr_studio.package_defaults import (
     str_field_suggestions,
     suggest_component_config,
 )
+from aoj_mr_studio.theme import MUTED_FG
 
 import yaml
 
@@ -229,7 +230,7 @@ class ComponentsEditor(ttk.LabelFrame):
         ttk.Label(
             toolbar,
             textvariable=self.components_hint_var,
-            foreground="#666666",
+            foreground=MUTED_FG,
             font=("", 8),
         ).pack(side=tk.LEFT, padx=(12, 0))
 

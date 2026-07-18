@@ -12,6 +12,8 @@ OBJECT_YAML_NAME = "object.yaml"
 QUEST_PACKAGE = "com.curif.AgeOfJoy"
 QUEST_MR_DIR = f"/sdcard/Android/data/{QUEST_PACKAGE}/MR"
 QUEST_CUSTOM_OBJECTS = f"{QUEST_MR_DIR}/Custom Objects"
+QUEST_MAGAZINES = f"{QUEST_MR_DIR}/Magazines"
+QUEST_MAGAZINES_YAML = f"{QUEST_MAGAZINES}/magazines.yaml"
 
 SURFACE_TYPES: dict[int, str] = {
     0: "Floor",

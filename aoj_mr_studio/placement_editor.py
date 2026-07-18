@@ -10,6 +10,7 @@ import yaml
 
 from aoj_mr_studio.config import STICK_ROTATION_AXES, SURFACE_TYPES
 from aoj_mr_studio.placement_schema import PlacementConfig, placement_from_dict
+from aoj_mr_studio.theme import MUTED_FG
 
 
 def _surface_labels() -> list[str]:
@@ -122,7 +123,7 @@ class PlacementEditor(ttk.LabelFrame):
         ttk.Label(
             self,
             textvariable=self.hint_var,
-            foreground="#666666",
+            foreground=MUTED_FG,
             font=("", 8),
             wraplength=900,
         ).pack(anchor=tk.W, pady=(6, 0))
